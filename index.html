@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>四象限待办清单</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><B>四象限待办清单</B></h1>
+      <!-- 头部图标 -->
+      <div class="header-icons">
+        <img src="images/history.png" class="icon" onclick="toggleCompletedTasks()" title="已完成任务">
+        <img src="images/setting.png" class="icon" onclick="toggleSettings()" title="设置">
+      </div>
+      <!-- 设置面板 -->
+      <div class="settings-panel" id="settingsPanel">
+        <div class="settings-section">
+          <h3>主题设置</h3>
+          <div class="settings-item">
+            <label>显示模式:</label>
+            <select id="themeSelect" onchange="switchTheme(this.value)">
+              <option value="light">浅色模式</option>
+              <option value="dark">深色模式</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>背景设置</h3>
+          <div class="settings-item">
+            <label>背景颜色:</label>
+            <input type="color" id="bgColorPicker" onchange="updateBackground()">
+          </div>
+          <div class="settings-item">
+            <label>透明度:</label>
+            <input type="range" id="opacitySlider" min="0.1" max="1" step="0.1" 
+              value="1" onchange="updateBackground()">
+            <span id="opacityValue">1.0</span>
+          </div>
+          <div class="settings-item">
+            <label>背景图片:</label>
+            <input type="file" id="bgImageInput" accept="image/*" onchange="updateBackgroundImage()">
+            <label for="bgImageInput" class="file-upload-btn">选择图片</label>
+          </div>
+        </div>
+      </div>
+      <!-- <div class="add-todo">
+        </div>
+        <select id="newTodoQuadrant">
+          <option value="1">重要且紧急</option>
+          <option value="2">重要不紧急</option>
+          <option value="3">不重要但紧急</option>
+          <option value="4">不重要不紧急</option>
+        </select>
+        <input type="text" id="newTodoContent" placeholder="输入新的待办事项">
+        <input type="date" id="newTodoDueDate">
+        <button onclick="addTodo()">添加</button>
+      </div> -->
+    </div>
+
+    <div class="quadrant-container">
+      <div class="quadrant quadrant-1">
+        <div class="quadrant-title">重要且紧急</div>
+        <button class="quadrant-add-btn" onclick="quickAddTodo(1)" title="添加待办">+</button>
+        <div id="q1"></div>
+      </div>
+      <div class="quadrant quadrant-2">
+        <div class="quadrant-title">重要不紧急</div>
+        <button class="quadrant-add-btn" onclick="quickAddTodo(2)" title="添加待办">+</button>
+        <div id="q2"></div>
+      </div>
+      <div class="quadrant quadrant-3">
+        <div class="quadrant-title">不重要但紧急</div>
+        <button class="quadrant-add-btn" onclick="quickAddTodo(3)" title="添加待办">+</button>
+        <div id="q3"></div>
+      </div>
+      <div class="quadrant quadrant-4">
+        <div class="quadrant-title">不重要不紧急</div>
+        <button class="quadrant-add-btn" onclick="quickAddTodo(4)" title="添加待办">+</button>
+        <div id="q4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加编辑对话框 -->
+  <div class="edit-dialog" id="editDialog">
+    <div class="edit-dialog-content">
+      <div class="dialog-header">
+        <h3>编辑待办事项</h3>
+        <button class="close-btn" onclick="cancelEdit()">×</button>
+      </div>
+      <div class="edit-form">
+        <div class="edit-form-item">
+          <label>待办内容</label>
+          <input type="text" id="editTodoInput" placeholder="修改待办事项内容">
+        </div>
+        <div class="edit-form-item">
+          <label>截止日期</label>
+          <input type="date" id="editTodoDueDate">
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="save-btn" onclick="saveEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 在 settings-panel 后添加已完成任务面板 -->
+  <div class="settings-panel" id="completedTasksPanel">
+    <div class="panel-header">
+      <h3>已完成任务</h3>
+      <img src="images/cleanAll.png" class="action-icon" 
+        onclick="clearCompletedTasks()" title="清除所有" style="padding: 3px">
+    </div>
+    <div id="completedTasksList"></div>
+  </div>
+
+  <!-- 在 body 末尾添加详情悬浮窗 HTML -->
+  <div class="detail-dialog" id="detailDialog">
+    <div class="detail-dialog-content">
+      <div class="detail-header">
+        <h3 id="detailTitle"></h3>
+        <button class="close-btn" onclick="handleDetailClose()">×</button>
+      </div>
+      <div class="detail-meta">
+        <span id="detailMeta"></span>
+        <span class="detail-stats" id="detailStats"></span>
+      </div>
+      <textarea id="detailEditor" placeholder="在这里输入详细内容..."></textarea>
+      <div class="detail-footer">
+        <button class="save-btn" onclick="saveDetail()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加快速添加对话框 -->
+  <div class="edit-dialog" id="addDialog">
+    <div class="edit-dialog-content">
+      <div class="dialog-header">
+        <h3>添加待办事项</h3>
+        <button class="close-btn" onclick="cancelAdd()">×</button>
+      </div>
+      <div class="edit-form">
+        <div class="edit-form-item">
+          <label>待办内容</label>
+          <input type="text" id="newTodoInput" placeholder="输入新的待办事项">
+        </div>
+        <div class="edit-form-item">
+          <label>截止日期</label>
+          <input type="date" id="newTodoDueDate">
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <button class="cancel-btn" onclick="cancelAdd()">取消</button>
+        <button class="save-btn" onclick="saveAdd()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 渲染四象限
+    function renderQuadrants() {
+      try {
+        const allTodos = window.todoApp?.getTodos?.() || [];
+        const todos = allTodos.filter(todo => !todo.completed);
+        
+        const todosByQuadrant = {
+          1: [], 2: [], 3: [], 4: []
+        };
+        
+        todos.forEach(todo => {
+          if (todo && typeof todo.quadrant === 'number') {
+            todosByQuadrant[todo.quadrant].push(todo);
+          }
+        });
+
+        for (let i = 1; i <= 4; i++) {
+          const quadrant = document.getElementById('q' + i);
+          if (quadrant) {
+            quadrant.innerHTML = todosByQuadrant[i].length > 0 
+              ? todosByQuadrant[i].map(todo => renderTodoItem(todo)).join('')
+              : '<div class="empty-message">没有任务</div>';
+          }
+        }
+      } catch (error) {
+        console.error('渲染四象限时出错:', error);
+      }
+    }
+
+    function renderTodoItem(todo) {
+      return `
+        <div class="todo-item ${todo.completed ? 'completed' : ''}" 
+          data-id="${todo.id}"
+          draggable="true"
+          ondragstart="dragStart(event, ${todo.id})"
+          ondragend="dragEnd(event)"
+          onclick="handleTodoClick(event, ${todo.id})">
+          <div class="todo-content">
+            <div class="todo-main">
+              <input type="checkbox" ${todo.completed ? 'checked' : ''} 
+                onchange="event.stopPropagation(); toggleTodo(${todo.id})">
+              <span>${todo.content}</span>
+            </div>
+            ${todo.dueDate ? `<div class="todo-date">截止: ${todo.dueDate}</div>` : ''}
+          </div>
+          <div class="todo-actions">
+            <img src="images/edit.png" class="action-icon" 
+              onclick="event.stopPropagation(); editTodo(${todo.id})" title="编辑" style="padding: 3px">
+            <img src="images/delete.png" class="action-icon" 
+              onclick="event.stopPropagation(); deleteTodo(${todo.id})" title="删除" style="padding: 3px">
+          </div>
+        </div>
+      `;
+    }
+
+    // 切换待办状态
+    function toggleTodo(id) {
+      if (window.todoApp.toggleTodo(id)) {
+        const todo = window.todoApp.getTodos().find(todo => todo.id === id);
+        if (todo?.completed) {
+          const checkbox = document.querySelector(`[data-id="${id}"] input[type="checkbox"]`);
+          if (checkbox) {
+            const rect = checkbox.getBoundingClientRect();
+            // 精确定位到复选框中心
+            const x = rect.left + (rect.width / 2);
+            const y = rect.top + (rect.height / 2);
+            
+            playSound('complete');
+            createConfetti(x, y);
+          }
+        }
+        renderQuadrants();
+        renderCompletedTasks();
+      }
+    }
+
+    // 删除待办
+    function deleteTodo(id) {
+      if (confirm('确定要删除这个待办事项吗？')) {
+        if (window.todoApp.deleteTodo(id)) {
+          playSound('delete');
+          renderQuadrants();
+          renderCompletedTasks();
+        }
+      }
+    }
+
+    // 编辑相关变量
+    let currentEditingId = null;
+
+    // 编辑待办
+    function editTodo(id) {
+      const todos = window.todoApp.getTodos();
+      const todo = todos.find(t => t.id === id);
+      if (!todo) return;
+
+      // 显示编辑对话框
+      currentEditingId = id;
+      const dialog = document.getElementById('editDialog');
+      const input = document.getElementById('editTodoInput');
+      const dateInput = document.getElementById('editTodoDueDate');
+      
+      input.value = todo.content;
+      dateInput.value = todo.dueDate || '';
+      dialog.classList.add('show');
+      input.focus();
+    }
+
+    // 取消编辑
+    function cancelEdit() {
+      const dialog = document.getElementById('editDialog');
+      dialog.classList.remove('show');
+      const input = document.getElementById('editTodoInput');
+      const dateInput = document.getElementById('editTodoDueDate');
+      
+      input.value = '';
+      dateInput.value = '';
+      currentEditingId = null;
+    }
+
+    // 快速添加待办事项
+    function quickAddTodo(quadrant) {
+      const dialog = document.getElementById('addDialog');
+      const input = document.getElementById('newTodoInput');
+      const dateInput = document.getElementById('newTodoDueDate');
+      
+      input.value = '';
+      dateInput.value = '';
+      dialog.setAttribute('data-quadrant', quadrant);
+      dialog.classList.add('show');
+      input.focus();
+    }
+
+    function cancelAdd() {
+      const dialog = document.getElementById('addDialog');
+      const input = document.getElementById('newTodoInput');
+      const dateInput = document.getElementById('newTodoDueDate');
+      
+      input.value = '';
+      dateInput.value = '';
+      dialog.classList.remove('show');
+    }
+
+    function saveAdd() {
+      const dialog = document.getElementById('addDialog');
+      const input = document.getElementById('newTodoInput');
+      const dateInput = document.getElementById('newTodoDueDate');
+      const quadrant = parseInt(dialog.getAttribute('data-quadrant'));
+      
+      const content = input.value.trim();
+      if (!content) {
+        utools.showNotification('请输入待办事项内容');
+        return;
+      }
+
+      // 添加新待办事项
+      window.todoApp.addTodo(content, quadrant, dateInput.value);
+      
+      // 关闭对话框并刷新显示
+      dialog.classList.remove('show');
+      input.value = '';
+      dateInput.value = '';
+      renderQuadrants();
+    }
+
+    // 修改保存编辑函数
+    function saveEdit() {
+      const input = document.getElementById('editTodoInput');
+      const dateInput = document.getElementById('editTodoDueDate');
+      const newContent = input.value.trim();
+      
+      if (newContent) {
+        if (currentEditingId) {
+          // 编辑现有待办
+          window.todoApp.updateTodo(currentEditingId, { 
+            content: newContent,
+            dueDate: dateInput.value
+          });
+        } else {
+          // 添加新待办
+          const quadrant = parseInt(document.getElementById('editDialog').getAttribute('data-quadrant'));
+          const todo = window.todoApp.addTodo(newContent, quadrant);
+          if (dateInput.value) {
+            window.todoApp.updateTodo(todo.id, { dueDate: dateInput.value });
+          }
+        }
+        renderQuadrants();
+        cancelEdit();
+      }
+    }
+
+    // 修改添加待办事项函数
+    function addTodo() {
+      const content = document.getElementById('newTodoContent').value.trim();
+      const quadrant = parseInt(document.getElementById('newTodoQuadrant').value);
+      const dueDate = document.getElementById('newTodoDueDate').value;
+      
+      if (content) {
+        const todo = window.todoApp.addTodo(content, quadrant);
+        if (dueDate) {
+          window.todoApp.updateTodo(todo.id, { dueDate });
+        }
+        document.getElementById('newTodoContent').value = '';
+        document.getElementById('newTodoDueDate').value = '';
+        renderQuadrants();
+      }
+    }
+
+    // 控制设置面板显示/隐藏
+    function toggleSettings() {
+      const panel = document.getElementById('settingsPanel');
+      panel.classList.toggle('show');
+      
+      // 点击外部关闭设置面板
+      const closePanel = (e) => {
+        if (!panel.contains(e.target) && 
+            !e.target.matches('.settings-icon')) {
+          panel.classList.remove('show');
+          document.removeEventListener('click', closePanel);
+        }
+      };
+      
+      setTimeout(() => {
+        document.addEventListener('click', closePanel);
+      }, 0);
+    }
+
+    // 切换主题
+    function switchTheme(themeName) {
+      if (window.todoApp.setTheme(themeName)) {
+        applyTheme(themeName);
+      }
+    }
+
+    // 应用主题
+    function applyTheme(themeName) {
+      const themes = window.todoApp.getThemes();
+      const theme = themes[themeName];
+      
+      document.body.className = `theme-${themeName}`;
+      if (!window.todoApp.getSettings().customBgColor) {
+        document.body.style.backgroundColor = theme.bgColor;
+      }
+      document.body.style.color = theme.textColor;
+
+      // 更新四象限颜色
+      for (let i = 1; i <= 4; i++) {
+        const quadrant = document.querySelector(`.quadrant-${i}`);
+        const colors = theme.quadrantColors[i];
+        if (quadrant && colors) {
+          quadrant.style.backgroundColor = themeName === 'dark' 
+            ? `rgba(31, 31, 31, 0.95)`
+            : `rgba(255, 255, 255, 0.95)`;
+          quadrant.querySelector('.quadrant-title').style.color = colors.color;
+        }
+      }
+    }
+
+    // 更新背景设置
+    function updateBackground() {
+      const bgColor = document.getElementById('bgColorPicker').value;
+      const opacity = document.getElementById('opacitySlider').value;
+      document.getElementById('opacityValue').textContent = parseFloat(opacity).toFixed(1);
+
+      // 更新设置
+      window.todoApp.updateSettings({
+        customBgColor: bgColor,
+        opacity: opacity
+      });
+
+      // 应用设置
+      applyBackground();
+    }
+
+    // 更新背景图片
+    function updateBackgroundImage() {
+      const input = document.getElementById('bgImageInput');
+      const file = input.files[0];
+      
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          // 更新设置
+          window.todoApp.updateSettings({
+            backgroundImage: e.target.result
+          });
+          
+          // 应用设置
+          applyBackground();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    // 应用背景设置
+    function applyBackground() {
+      const settings = window.todoApp.getSettings();
+      
+      if (settings.customBgColor) {
+        document.body.style.backgroundColor = settings.customBgColor;
+      }
+      
+      if (settings.opacity) {
+        document.querySelectorAll('.quadrant').forEach(quadrant => {
+          quadrant.style.opacity = settings.opacity;
+        });
+      }
+      
+      if (settings.backgroundImage) {
+        document.body.style.backgroundImage = `url(${settings.backgroundImage})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+      } else {
+        document.body.style.backgroundImage = 'none';
+      }
+    }
+
+    // 添加已完成任务面板的显示/隐藏功能
+    function toggleCompletedTasks() {
+      const panel = document.getElementById('completedTasksPanel');
+      panel.classList.toggle('show');
+      
+      if (panel.classList.contains('show')) {
+        renderCompletedTasks();
+      }
+
+      // 点击外部关闭面板
+      const closePanel = (e) => {
+        if (!panel.contains(e.target) && 
+            !e.target.matches('img[src*="history.png"]')) {
+          panel.classList.remove('show');
+          document.removeEventListener('click', closePanel);
+        }
+      };
+      
+      setTimeout(() => {
+        document.addEventListener('click', closePanel);
+      }, 0);
+    }
+
+    // 渲染已完成任务列表
+    function renderCompletedTasks() {
+      const completedTasks = window.todoApp.getTodos()
+        .filter(todo => todo.completed)
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      
+      const container = document.getElementById('completedTasksList');
+      
+      if (completedTasks.length === 0) {
+        container.innerHTML = '<div class="empty-message">暂无已完成任务</div>';
+        return;
+      }
+
+      container.innerHTML = completedTasks
+        .map(todo => `
+          <div class="todo-item completed">
+            <div class="todo-content">
+              <span>${todo.content}</span>
+              ${todo.dueDate ? `<div class="todo-date">截止: ${todo.dueDate}</div>` : ''}
+              <div class="todo-completed-time">完成于: ${formatDateTime(todo.completedAt)}</div>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    // 添加日期时间格式化函数
+    function formatDateTime(dateString) {
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    }
+
+    // 添加清除所有已完成任务的函数
+    function clearCompletedTasks() {
+      if (confirm('确定要清除所有已完成的任务吗？')) {
+        window.todoApp.clearCompletedTasks();
+        renderCompletedTasks();
+        renderQuadrants();
+      }
+    }
+
+    // 修改初始化函数
+    document.addEventListener('DOMContentLoaded', () => {
+      // 确保 todoApp 对象存在
+      if (!window.todoApp) {
+        console.error('todoApp 未初始化');
+        return;
+      }
+
+      // 设置当前主题
+      const savedSettings = window.todoApp.getSettings();
+      const currentTheme = savedSettings.lastTheme || 'light';
+      document.getElementById('themeSelect').value = currentTheme;
+      applyTheme(currentTheme);
+      
+      // 渲染待办事项
+      renderQuadrants();
+      
+      // 初始化背景设置
+      if (savedSettings.customBgColor) {
+        document.getElementById('bgColorPicker').value = savedSettings.customBgColor;
+      }
+      if (savedSettings.opacity) {
+        document.getElementById('opacitySlider').value = savedSettings.opacity;
+        document.getElementById('opacityValue').textContent = parseFloat(savedSettings.opacity).toFixed(1);
+      }
+      
+      // 应用背景设置
+      applyBackground();
+
+      // 添加放置区域的事件监听
+      for (let i = 1; i <= 4; i++) {
+        const quadrant = document.querySelector(`.quadrant-${i}`);
+        if (quadrant) {
+          quadrant.addEventListener('dragover', handleDragOver);
+          quadrant.addEventListener('dragleave', handleDragLeave);
+          quadrant.addEventListener('drop', (e) => handleDrop(e, i));
+        }
+      }
+    });
+
+    // 修改 handleTodoClick 函数
+    function handleTodoClick(event, todoId) {
+      if (event.target.tagName === 'INPUT' || 
+          event.target.tagName === 'IMG' || 
+          event.target.closest('.todo-actions')) {
+        return;
+      }
+      
+      showDetail(todoId);
+    }
+
+    let currentDetailTodo = null;
+    let isDetailContentChanged = false;
+
+    // 更新统计信息
+    function updateDetailStats() {
+      const editor = document.getElementById('detailEditor');
+      const text = editor.value;
+      const charCount = text.length;
+      const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+      const lineCount = text.split('\n').length;
+      
+      document.getElementById('detailStats').textContent = 
+        `字符数：${charCount} | 词数：${wordCount} | 行数：${lineCount}`;
+    }
+
+    // 修改显示详情函数
+    function showDetail(todoId) {
+      currentDetailTodo = window.todoApp.getTodos().find(todo => todo.id === todoId);
+      if (!currentDetailTodo) return;
+      
+      document.getElementById('detailTitle').textContent = currentDetailTodo.content;
+      document.getElementById('detailMeta').textContent = 
+        `创建时间：${new Date(currentDetailTodo.createdAt).toLocaleString()}`;
+      
+      const editor = document.getElementById('detailEditor');
+      editor.value = currentDetailTodo.description || '';
+      isDetailContentChanged = false;
+      
+      // 更新统计信息
+      updateDetailStats();
+      
+      // 监听内容变化
+      editor.oninput = () => {
+        isDetailContentChanged = true;
+        updateDetailStats();
+      };
+      
+      document.getElementById('detailDialog').classList.add('show');
+    }
+
+    // 处理关闭
+    function handleDetailClose() {
+      if (isDetailContentChanged) {
+        const result = confirm('内容已修改，是否保存后退出？');
+        if (result) {
+          saveDetail();
+        }
+      }
+      closeDetail();
+    }
+
+    // 关闭详情
+    function closeDetail() {
+      document.getElementById('detailDialog').classList.remove('show');
+      currentDetailTodo = null;
+      isDetailContentChanged = false;
+    }
+
+    // 保存详情
+    function saveDetail() {
+      if (currentDetailTodo) {
+        const description = document.getElementById('detailEditor').value;
+        window.todoApp.updateTodoDescription(currentDetailTodo.id, description);
+        utools.showNotification('保存成功');
+        closeDetail();
+      }
+    }
+
+    // 添加播放声音的函数
+    function playSound(type) {
+      try {
+        const audio = new Audio();
+        switch(type) {
+          case 'complete':
+            audio.src = 'sounds/over.mp3';
+            break;
+          case 'delete':
+            audio.src = 'sounds/delete.mp3';
+            break;
+          case 'move':
+            audio.src = 'sounds/drop.mp3'; // 需要添加一个拖放音效文件
+            break;
+        }
+        audio.play();
+      } catch (error) {
+        console.error('播放声音失败:', error);
+      }
+    }
+
+    // 创建撒花效果
+    function createConfetti(x, y) {
+      const colors = ['blue', 'cyan', 'teal', 'azure', 'white'];
+      const confettiCount = 32; // 增加粒子数量
+      const angleStep = (2 * Math.PI) / confettiCount;
+
+      // 修改触发位置为复选框中心
+      const centerX = x;
+      const centerY = y;
+
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = `confetti ${colors[Math.floor(Math.random() * colors.length)]}`;
+        
+        // 计算扩散方向，添加更多随机性
+        const angle = i * angleStep + (Math.random() * 0.3 - 0.15);
+        const spreadX = Math.cos(angle);
+        const spreadY = Math.sin(angle);
+        
+        confetti.style.setProperty('--spread-x', spreadX);
+        confetti.style.setProperty('--spread-y', spreadY);
+        
+        // 设置初始位置，确保从复选框中心开始
+        confetti.style.left = `${centerX}px`;
+        confetti.style.top = `${centerY}px`;
+        
+        // 添加随机大小，增大差异
+        const scale = 0.7 + Math.random() * 0.6;
+        confetti.style.transform = `scale(${scale})`;
+        
+        // 添加极短的随机延迟
+        confetti.style.animationDelay = `${Math.random() * 0.03}s`;
+        
+        document.body.appendChild(confetti);
+        
+        confetti.addEventListener('animationend', () => {
+          confetti.remove();
+        });
+      }
+    }
+
+    // 添加拖拽相关函数
+    let draggedTodoId = null;
+
+    // 开始拖拽时触发
+    function dragStart(event, todoId) {
+      draggedTodoId = todoId;
+      event.dataTransfer.setData('text/plain', todoId);
+      // 添加延时设置拖拽样式，解决Firefox的兼容性问题
+      setTimeout(() => {
+        event.target.classList.add('dragging');
+      }, 0);
+    }
+
+    // 结束拖拽时触发
+    function dragEnd(event) {
+      event.target.classList.remove('dragging');
+      document.querySelectorAll('.quadrant').forEach(q => {
+        q.classList.remove('drag-over');
+      });
+    }
+
+    // 拖拽经过有效放置区域时触发
+    function handleDragOver(event) {
+      event.preventDefault(); // 允许放置
+      if (!event.currentTarget.classList.contains('drag-over')) {
+        event.currentTarget.classList.add('drag-over');
+      }
+    }
+
+    // 拖拽离开放置区域时触发
+    function handleDragLeave(event) {
+      event.currentTarget.classList.remove('drag-over');
+    }
+
+    // 放置时触发
+    function handleDrop(event, quadrantNumber) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('drag-over');
+      
+      if (draggedTodoId) {
+        const todoId = parseInt(draggedTodoId);
+        const todo = window.todoApp.getTodos().find(t => t.id === todoId);
+        
+        // 如果任务存在且不在目标象限
+        if (todo && todo.quadrant !== quadrantNumber) {
+          // 更新待办事项的象限
+          window.todoApp.updateTodo(todoId, { quadrant: quadrantNumber });
+          
+          // 添加一个动画效果并播放声音
+          playSound('move');
+          
+          // 重新渲染四象限
+          renderQuadrants();
+          
+          // 显示成功提示
+          utools.showNotification(`任务已移动至${getQuadrantName(quadrantNumber)}`);
+        }
+        
+        draggedTodoId = null;
+      }
+    }
+
+    // 获取象限名称
+    function getQuadrantName(quadrantNumber) {
+      const names = {
+        1: "重要且紧急",
+        2: "重要不紧急",
+        3: "不重要但紧急",
+        4: "不重要不紧急"
+      };
+      return names[quadrantNumber] || "未知区域";
+    }
+  </script>
+</body>
+</html>

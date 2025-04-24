@@ -1,0 +1,27 @@
+{
+  "main": "index.html",
+  "logo": "logo.png", 
+  "preload": "preload.js",
+  "features": [
+    {
+      "code": "desktop-todo",
+      "explain": "桌面待办清单",
+      "cmds": ["todo", "待办", "清单"]
+    }
+  ],
+  "pluginSetting": {
+    "single": true,
+    "theme": "light"
+  },
+  "development": {
+    "main": "index.html",
+    "preload": "preload.js"
+  },
+  "files": [
+    "sounds/over.mp3",
+    "sounds/delete.mp3",
+    "sounds/drop.mp3",
+    "images/setting.png",
+    "images/cleanAll.png"
+  ]
+}
